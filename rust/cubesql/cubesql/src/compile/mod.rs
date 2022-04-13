@@ -50,8 +50,8 @@ use self::engine::udf::{
     create_connection_id_udf, create_convert_tz_udf, create_current_schema_udf,
     create_current_schemas_udf, create_current_user_udf, create_db_udf, create_format_type_udf,
     create_if_udf, create_instr_udf, create_isnull_udf, create_least_udf, create_locate_udf,
-    create_time_format_udf, create_timediff_udf, create_ucase_udf, create_user_udf,
-    create_version_udf,
+    create_pg_datetime_precision_udf, create_time_format_udf, create_timediff_udf,
+    create_ucase_udf, create_user_udf, create_version_udf,
 };
 use self::parser::parse_sql_to_statement;
 use crate::compile::engine::udf::{
@@ -2218,6 +2218,7 @@ WHERE `TABLE_SCHEMA` = '{}'",
         ctx.register_udf(create_current_schemas_udf());
         ctx.register_udf(create_format_type_udf("format_type"));
         ctx.register_udf(create_format_type_udf("pg_catalog.format_type"));
+        ctx.register_udf(create_pg_datetime_precision_udf());
         // udaf
         ctx.register_udaf(create_measure_udaf());
 
@@ -5307,6 +5308,38 @@ mod tests {
             "format_type_none",
             execute_query(
                 "SELECT format_type(0, NULL);".to_string(),
+                DatabaseProtocol::PostgreSQL
+            )
+            .await?
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_pg_datetime_precision_postgres() -> Result<(), CubeError> {
+        insta::assert_snapshot!(
+            "pg_datetime_precision_simple",
+            execute_query(
+                "SELECT information_schema._pg_datetime_precision(1082, 1);".to_string(),
+                DatabaseProtocol::PostgreSQL
+            )
+            .await?
+        );
+
+        insta::assert_snapshot!(
+            "pg_datetime_precision_typmod",
+            execute_query(
+                "SELECT information_schema._pg_datetime_precision(1184, 3);".to_string(),
+                DatabaseProtocol::PostgreSQL
+            )
+            .await?
+        );
+
+        insta::assert_snapshot!(
+            "pg_datetime_precision_none",
+            execute_query(
+                "SELECT information_schema._pg_datetime_precision(1000, 10);".to_string(),
                 DatabaseProtocol::PostgreSQL
             )
             .await?

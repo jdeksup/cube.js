@@ -1,0 +1,9 @@
+---
+source: cubesql/src/compile/mod.rs
+expression: "execute_query(\"SELECT information_schema._pg_datetime_precision(1082, 1);\".to_string(),\n            DatabaseProtocol::PostgreSQL).await?"
+---
++-----------------------------------------------------------------+
+| information_schema._pg_datetime_precision(Int64(1082),Int64(1)) |
++-----------------------------------------------------------------+
+| 0                                                               |
++-----------------------------------------------------------------+
