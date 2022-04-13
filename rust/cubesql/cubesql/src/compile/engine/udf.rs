@@ -1140,6 +1140,40 @@ pub fn create_pg_numeric_precision_udf() -> ScalarUDF {
     )
 }
 
+pub fn create_pg_numeric_scale_udf() -> ScalarUDF {
+    let fun = make_scalar_function(move |args: &[ArrayRef]| {
+        let typid = downcast_primitive_arg!(&args[0], "typid", Int64Type).value(0);
+        let typmod = downcast_primitive_arg!(&args[1], "typmod", Int64Type).value(0);
+
+        let mut builder = Int64Builder::new(1);
+
+        let scale = match typid {
+            20 | 21 | 23 => Some(0),
+            1700 => match typmod {
+                -1 => None,
+                _ => Some((typmod - 4) & 65535),
+            },
+            _ => None,
+        };
+
+        if scale.is_some() {
+            builder.append_value(scale.unwrap()).unwrap();
+        } else {
+            builder.append_null().unwrap();
+        }
+
+        Ok(Arc::new(builder.finish()) as ArrayRef)
+    });
+
+    create_udf(
+        "information_schema._pg_numeric_scale",
+        vec![DataType::Int64, DataType::Int64],
+        Arc::new(DataType::Int64),
+        Volatility::Immutable,
+        fun,
+    )
+}
+
 pub fn create_measure_udaf() -> AggregateUDF {
     create_udaf(
         "measure",
